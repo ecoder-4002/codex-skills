@@ -1,0 +1,4 @@
+interface:
+  display_name: "热点新闻图文工厂"
+  short_description: "生成可信的抖音新闻图文、带标题的详细简介与五个话题标签"
+  default_prompt: "Use $hot-news-carousel to research a current topic and deliver a 1080x1440 Chinese news carousel with titled, detailed, ready-to-paste publication copy ending in exactly five hashtags."
