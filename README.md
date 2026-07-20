@@ -16,11 +16,25 @@
 
 适用于抖音图文、科技新闻海报、小红书新闻长图、AI 热点图文等场景。
 
+### hot-news-carousel-cocreate
+
+共创版热点图文工作流。保留自动调研、写稿、分页、渲染和检查，只在三个真正影响成片的节点依次暂停：
+
+1. 选择叙事角度；
+2. 决定立场、表达强度和封面标题；
+3. 从可见的视觉方向板中选择或混合最终方向。
+
+三个决定完成后，Skill 会自动交付 1080 × 1440 成图、逐页文案、来源说明和可直接发布的详细简介。适合希望自己担任“主编”，但不想逐步盯制作流程的用户。
+
 ## 用 Codex 安装
 
 在 Codex 中发送：
 
 > 使用 `$skill-installer` 安装 https://github.com/ecoder-4002/codex-skills/tree/main/skills/hot-news-carousel
+
+安装共创版：
+
+> 使用 `$skill-installer` 安装 https://github.com/ecoder-4002/codex-skills/tree/main/skills/hot-news-carousel-cocreate
 
 安装完成后，该 Skill 会在下一轮对话中可用。
 
@@ -32,6 +46,8 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
   --path skills/hot-news-carousel
 ```
 
+将最后一行改为 `--path skills/hot-news-carousel-cocreate` 即可手动安装共创版。
+
 ## 使用示例
 
 安装后可以直接对 Codex 说：
@@ -39,6 +55,7 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
 - “用今天最值得讲的 AI 热点做一套抖音图文，页数根据内容决定。”
 - “把这个新闻链接做成 1080×1440 的杂志感图文，并生成可直接发布的详细简介。”
 - “先完成搜索、事实账本、母稿和分页结构，暂时不出图。”
+- “用共创版做一期这个新闻，先让我选叙事、标题和视觉，再自动出完整图。”
 
 ## 可选署名配置
 
@@ -61,7 +78,12 @@ Skill 固化了研究、事实边界、母稿、分页、视觉层级、交付�
 ```text
 codex-skills/
 ├── skills/
-│   └── hot-news-carousel/
+│   ├── hot-news-carousel/
+│   │   ├── SKILL.md
+│   │   ├── agents/openai.yaml
+│   │   ├── references/
+│   │   └── scripts/
+│   └── hot-news-carousel-cocreate/
 │       ├── SKILL.md
 │       ├── agents/openai.yaml
 │       ├── references/
