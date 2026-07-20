@@ -1,0 +1,4 @@
+interface:
+  display_name: "热点新闻图文共创"
+  short_description: "依次共创叙事、立场标题与可见视觉方向，再自动完成图文"
+  default_prompt: "Use $hot-news-carousel-cocreate to research this topic, pause for my narrative, stance/title, and visible visual-direction decisions in order, then automatically deliver the verified 1080x1440 Chinese news carousel and publication copy."
