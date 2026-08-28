@@ -1,0 +1,4 @@
+interface:
+  display_name: "AI B-roll 复刻 V0.6"
+  short_description: "两阶段审核：先静态拆层，再做 Remotion 复刻"
+  default_prompt: "Use $ai-broll-fuke to analyze this reference video, deliver the static master and controllable layer pack first, then stop for my approval before building Remotion."

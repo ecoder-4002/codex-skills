@@ -4,6 +4,17 @@
 
 ## 当前收录
 
+### ai-broll-fuke
+
+把一段参考视频或动效镜头拆解为可复现的视觉逻辑与运动语法：
+
+- 第一阶段先交付干净静态母版、背景板、独立可控图层、manifest 和可见预览；
+- 静态素材得到明确批准后，第二阶段才制作 Remotion 动效原型；
+- 用精确帧对照检查轮廓、遮挡、枢轴、时序、接缝与最终对齐；
+- 只有用户明确要求时才渲染完整视频。
+
+适合复刻、模仿、还原或拆解已有 B-roll / motion-design 镜头。它不会把无参考的生成式视频请求误路由进来。
+
 ### hot-news-carousel
 
 把热点、新闻链接或原始素材变成可信的中文竖版新闻图文：
@@ -36,6 +47,10 @@
 
 > 使用 `$skill-installer` 安装 https://github.com/ecoder-4002/codex-skills/tree/main/skills/hot-news-carousel-cocreate
 
+安装 AI B-roll 复刻：
+
+> 使用 `$skill-installer` 安装 https://github.com/ecoder-4002/codex-skills/tree/main/skills/ai-broll-fuke
+
 安装完成后，该 Skill 会在下一轮对话中可用。
 
 也可以手动运行 Codex 自带的安装脚本：
@@ -46,7 +61,19 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
   --path skills/hot-news-carousel
 ```
 
-将最后一行改为 `--path skills/hot-news-carousel-cocreate` 即可手动安装共创版。
+将最后一行改为 `--path skills/hot-news-carousel-cocreate` 或 `--path skills/ai-broll-fuke` 即可安装对应 Skill。
+
+## ai-broll-fuke 依赖说明
+
+Skill 本身只包含 Markdown/YAML 指令与参考资料，不包含 npm 包，也不需要上传 `node_modules`。
+
+- 第一阶段：需要能读取参考视频和图片；本机有 FFmpeg/ffprobe 时，抽帧和元数据检查更稳定。
+- 第二阶段：需要可用的 Node.js LTS 环境。生成的 Remotion 工程应在自己的 `package.json` 中声明 `remotion`、`@remotion/cli`、React、React DOM、Zod 及实际用到的 `@remotion/*` 包，并提交锁文件。
+- Remotion 版本：`remotion` 与所有 `@remotion/*` 包应固定为完全相同的版本，避免 CLI、Studio 和渲染器不匹配。
+- 可选增强：本地若已有 `broll-video` 与 Remotion best-practices Skills，Codex 会加载它们；没有时仍可使用本 Skill 自带的运动模式参考完成流程。
+- 不应提交：`node_modules/`、Remotion 下载的浏览器/缓存、渲染输出、`.env`、API 密钥和其他本地凭据。
+
+一个可分享的 Remotion 子项目至少应保留 `package.json`、对应锁文件、源码、静态资源、`.gitignore` 和启动说明。同学 clone 后按锁文件使用 `npm ci`、`pnpm install --frozen-lockfile` 或等价命令安装即可。
 
 ## 使用示例
 
@@ -56,6 +83,7 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
 - “把这个新闻链接做成 1080×1440 的杂志感图文，并生成可直接发布的详细简介。”
 - “先完成搜索、事实账本、母稿和分页结构，暂时不出图。”
 - “用共创版做一期这个新闻，先让我选叙事、标题和视觉，再自动出完整图。”
+- “用 `$ai-broll-fuke` 复刻这段参考动效，先给我静态母版和分层预览，素材确认后再进入 Remotion。”
 
 ## 可选署名配置
 
@@ -78,6 +106,10 @@ Skill 固化了研究、事实边界、母稿、分页、视觉层级、交付�
 ```text
 codex-skills/
 ├── skills/
+│   ├── ai-broll-fuke/
+│   │   ├── SKILL.md
+│   │   ├── agents/openai.yaml
+│   │   └── references/
 │   ├── hot-news-carousel/
 │   │   ├── SKILL.md
 │   │   ├── agents/openai.yaml
