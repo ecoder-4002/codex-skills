@@ -1,57 +1,48 @@
-# VideoChai
+# VideoChai｜视频链接下载与总结
 
-一个可安装的 Agent Skill：输入一条公开 B 站、抖音或 X/Twitter 推文视频链接，临时取得媒体并在本机转录、读取代表性关键帧，最后只生成一篇飞书文档。
+给 Agent 一条公开 B站、抖音或 X/Twitter 视频链接，把视频下载到本地；也可以在本机转录和抽帧后，由 Agent 总结内容。支持仅下载、仅总结，以及下载并总结。
 
-## 使用
+## 一句话安装
 
-给支持 Skill 和本地终端的 Agent 发送这一句话：
+> 请安装这个视频链接下载与总结 Skill：https://github.com/ecoder-4002/codex-skills/tree/main/skills/video-chai ，读取 SKILL.md，并检查本次任务需要的依赖。
 
-> 请安装这个 VideoChai Skill：https://github.com/ecoder-4002/codex-skills/tree/main/skills/video-chai ，读取 SKILL.md，并在首次使用时检查和配置缺少的依赖。
-
-在 Codex 中也可以使用自带安装器：
+Codex 也可以使用自带安装器：
 
 > 使用 `$skill-installer` 安装 https://github.com/ecoder-4002/codex-skills/tree/main/skills/video-chai
 
-也可以把完整 `video-chai` 目录交给 Agent，说“安装这个 Skill”。安装完成后，在下一轮对话中使用：
+## 使用示例
 
 ```text
-$video-chai 拆一下这个视频，只分析人物和氛围：https://www.bilibili.com/video/BV...
+$video-chai 下载这个视频：https://www.bilibili.com/video/BV...
+$video-chai 总结这个视频，重点提炼方法：https://v.douyin.com/...
+$video-chai 下载并总结这个视频：https://x.com/username/status/...
 ```
 
-第一次运行时，Agent 会：
-
-1. 识别平台与操作系统，执行只读 doctor。
-2. 只安装本次链接缺少的媒体和本机转录依赖。
-3. 引导你在官方交互页完成飞书授权。
-4. 用一条短公开视频做冒烟测试，然后才处理长视频。
-
-它不会要求你在聊天里粘贴密钥或 Cookie。需要系统级安装或登录时，Agent 会先取得确认。
-
-## 两种模式
-
-- 工作台模式：连接兼容的本地内容工作台，支持持久任务、失败续跑及更成熟的抖音匿名兜底。
-- 独立模式：只依赖本目录脚本、ffmpeg、本机 Whisper 和 Agent 自己的视觉/飞书能力。抖音先用匿名`yt-dlp`，失败时自动使用临时隔离 Playwright 浏览器，不读取个人档案或 Cookie。
-
-X/Twitter 公开推文视频使用匿名`yt-dlp`；不读取浏览器 Cookie，需登录或受保护推文会明确报错。
+下载结果保存为本地视频，总结会在对话中给出并保存为本地 Markdown。支持抖音分享文本中的短链接、B站 BV 号及分集参数；本版本以已给定的视频链接为入口，不提供关键词搜索。
 
 ## 依赖与费用
 
-Skill 本身不销售模型额度，也不内置 API Key。独立模式使用本机 Whisper 转录、Agent 自己的分析能力和已有的飞书文档能力；是否消耗订阅额度或产生 API 费用，取决于接收方 Agent 与服务的配置。支持的环境和部署步骤见 [references/deployment.md](references/deployment.md)。
+需要 Python 3.9+、FFmpeg/ffprobe 和对应平台下载器。仅下载不需要 Whisper；语音总结使用本机 Whisper，画面和内容理解使用接收方 Agent 的能力。模型权重首次使用可能需要下载，Agent 的使用额度或费用取决于自己的订阅或 API 配置。Skill 本身不销售 token，也不内置模型 API Key。
+
+首次使用先检查本次平台和模式：
+
+```bash
+python3 scripts/doctor.py --json --platform bilibili --mode download
+python3 scripts/doctor.py --json --platform douyin --mode summarize
+```
+
+具体配置见 [部署说明](references/deployment.md)。只处理公开可访问的视频，不读取个人浏览器登录数据。默认优先选择 720p 档位，实际分辨率以输出文件为准。无声视频可以下载，并通过画面总结。
 
 ## 验证
-
-在 Skill 目录运行已有测试：
 
 ```bash
 python3 -m unittest discover -s tests -v
 ```
 
-测试覆盖 URL 校验、匿名媒体适配、抖音音画合并、转录时间戳、抽帧清单及用户要求保留。平台访问与飞书发布仍需在接收方环境中完成首次冒烟验证。
+测试覆盖 URL 校验、匿名下载命令、抖音音画合并、无声视频、下载与总结的依赖区分、转录时间戳及抽帧清单。平台访问受源站限制，下载失败会明确报告；接收方环境仍需实际验证下载及本机模型可用性。
 
-## 隐私边界
-
-媒体、音频和关键帧只存在于任务临时目录，成功或失败后删除。Skill 只处理公开可访问的视频，不绕过登录、付费或会员权限。
+临时音频、关键帧和未要求保留的媒体在交付后清理；用户下载的视频和本地总结保留。
 
 ## License
 
-GPL-3.0-only。B 站媒体准备通过独立进程调用同为 GPL-3.0 的 [yutto](https://github.com/yutto-dev/yutto)，未复制或内嵌其源码。详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+GPL-3.0-only。外部工具单独安装，未内嵌其源码，详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

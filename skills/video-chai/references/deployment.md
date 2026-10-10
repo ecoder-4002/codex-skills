@@ -1,50 +1,31 @@
-# Agent-led deployment
+# 本机依赖配置
 
-只在 `scripts/doctor.py --json` 显示工作台不可用或独立模式缺少依赖时读取。
+仅在 doctor 报告缺少依赖或首次运行失败时读取。全部脚本使用同一个 Python 解释器。
 
-## 部署目标
+## 按任务安装
 
-独立模式需要：
+- 基础：Python 3.9+，`ffmpeg` 与 `ffprobe`。
+- B站：`uvx`，运行时自动调用固定版本 `yutto==2.3.0`。
+- 抖音、X/Twitter：当前 Python 可导入 `yt_dlp`。
+- 抖音可选兜底：`playwright`，以及系统 Chrome 或 Playwright Chromium。包存在不代表浏览器已安装，首次实际运行仍须检查。
+- 语音总结：Apple Silicon 可用 `mlx-whisper`，其他环境可用 `faster-whisper`。仅下载或只分析无声视频时无需安装。
 
-- Python 3.9+
-- `ffmpeg` 与 `ffprobe`
-- B站：`uvx`，运行时固定调用 `yutto==2.3.0`
-- 抖音：当前 Python 可导入 `yt_dlp` 和 `playwright`；优先复用系统 Chrome，没有时可在确认后安装 Playwright Chromium
-- X/Twitter：当前 Python 可导入 `yt_dlp`；只处理匿名可访问的公开推文视频
-- 本机转录：Apple Silicon 优先 `mlx-whisper`；其他平台可用 `faster-whisper`
-- 飞书：当前 Agent 有飞书文档连接器/Skill，或本机已经完成 `lark-cli` 用户授权
+先运行 `doctor.py --json --platform bilibili|douyin|twitter --mode download|summarize`。下载模式只要求媒体依赖；总结模式额外检查本机转录依赖。`ok` 表示本机依赖齐备，不证明网络、平台访问或模型权重已可用。抖音浏览器兜底为可选项，不阻塞匿名下载器的就绪检查。
 
-## Agent 的引导顺序
+## 常见配置
 
-1. 先根据用户链接运行 `doctor.py --json --platform bilibili|douyin|twitter`，报告已满足和缺失项，不要直接批量安装。
-2. 根据操作系统给出最小安装命令，并在执行系统级安装前取得用户确认。
-3. 依赖安装后重新运行 doctor，直到媒体与转录均 ready。
-4. 飞书授权必须在官方交互页或凭据管理工具中完成；不要要求用户把 App Secret、access token 或 Cookie 发到聊天里。
-5. 用一条短公开视频完成冒烟：只验证临时下载、短转录、1–3帧和测试文档。用户确认后再处理长视频。
-
-## 常见安装提示
-
-macOS 可优先使用 Homebrew 安装 `ffmpeg` 和 `uv`。Python 集成依赖安装到隔离虚拟环境：
+macOS 可通过 Homebrew 安装 `ffmpeg` 和 `uv`。把需要的 Python 包装到独立虚拟环境中，避免改变其他项目：
 
 ```text
 python3 -m venv <video-chai-runtime>
-<video-chai-runtime>/bin/pip install yt-dlp             # 抖音和 X/Twitter
-<video-chai-runtime>/bin/pip install playwright          # 只有抖音兜底需要
-<video-chai-runtime>/bin/pip install mlx-whisper     # 仅 Apple Silicon
-<video-chai-runtime>/bin/pip install faster-whisper  # 其他平台备选
+<video-chai-runtime>/bin/pip install yt-dlp          # 抖音和 X/Twitter
+<video-chai-runtime>/bin/pip install playwright     # 可选抖音兜底
+<video-chai-runtime>/bin/pip install mlx-whisper    # Apple Silicon 语音总结
+<video-chai-runtime>/bin/pip install faster-whisper # 其他平台语音总结
 ```
 
-后续独立模式的 `doctor.py`、`prepare_media.py` 和 `transcribe.py` 必须都用 `<video-chai-runtime>/bin/python` 运行；不要用另一个 Python 而导致 doctor 看不到刚安装的包。Windows 的对应解释器为 `<video-chai-runtime>\\Scripts\\python.exe`。
+只运行需要的安装命令。后续全部脚本使用 `<video-chai-runtime>/bin/python`；Windows 对应 `<video-chai-runtime>/Scripts/python.exe`。MLX 模型和 faster-whisper 模型首次使用会下载权重，需要网络和足够磁盘空间。
 
-不要静默安装浏览器扩展、读取个人浏览器档案或导入 Cookie。抖音先使用公开匿名 `yt-dlp`；失败时使用任务目录内全新 Playwright 档案，只下载白名单 CDN 播放流，并用 ffprobe 确认音画轨道。本机无 Chrome 且内置 Chromium 也未安装时，Agent 可在用户确认后运行`<video-chai-runtime>/bin/python -m playwright install chromium`。
+抖音兜底使用任务目录中的全新浏览器档案，默认尝试系统 Chrome。如果只有 Playwright Chromium，设置 `VIDEO_CHAI_BROWSER_CHANNEL=chromium`；尚未安装时用当前解释器运行 `python -m playwright install chromium`。不读取个人浏览器档案，也不导入登录数据。
 
-## 工作台兼容契约
-
-若用户已有服务，只需提供：
-
-- `GET /api/short-video-jobs`
-- `POST /api/short-videos/intake`
-- `GET /api/short-video-jobs/{job_id}`
-- `GET /api/items`
-
-通过 `VIDEO_CHAI_WORKBENCH_URL` 指定地址，默认 `http://127.0.0.1:8765`。只应连接用户明确部署的可信本机或私有服务。
+按当前任务已有授权配置最小依赖，不把系统级安装、全局配置变更或登录当成默认步骤。先验证短视频的下载和真实媒体轨道；需要总结时再验证本机转录、抽帧和 Agent 的图片读取。缺少语音或视觉能力时说明实际覆盖范围，不声称已完整理解视频。

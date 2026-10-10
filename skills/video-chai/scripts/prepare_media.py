@@ -257,7 +257,33 @@ def _extract_audio(video: Path, root: Path, runner: Any = _runner) -> Path:
     return audio.resolve()
 
 
-def prepare(url: str, directory: Path, runner: Any = _runner) -> Dict[str, Any]:
+def _probe_media(video: Path, runner: Any = _runner) -> Dict[str, Any]:
+    ffprobe = shutil.which("ffprobe")
+    if not ffprobe:
+        raise MediaPreparationError("系统找不到 ffprobe", "FFPROBE_UNAVAILABLE")
+    try:
+        completed = runner([
+            ffprobe, "-v", "error", "-show_entries",
+            "stream=codec_type,width,height:format=duration", "-of", "json", str(video),
+        ], capture_output=True, text=True, timeout=60, check=False, shell=False)
+        if completed.returncode != 0:
+            raise ValueError("ffprobe failed")
+        payload = json.loads(completed.stdout)
+        streams = payload.get("streams", [])
+        video_stream = next(stream for stream in streams if stream.get("codec_type") == "video")
+        return {
+            "duration_seconds": round(float(payload.get("format", {}).get("duration") or 0), 3),
+            "width": int(video_stream.get("width") or 0),
+            "height": int(video_stream.get("height") or 0),
+            "has_audio": any(stream.get("codec_type") == "audio" for stream in streams),
+        }
+    except (OSError, subprocess.TimeoutExpired, ValueError, TypeError,
+            AttributeError, StopIteration) as exc:
+        raise MediaPreparationError("下载文件没有有效视频轨道", "INVALID_MEDIA") from exc
+
+
+def prepare(url: str, directory: Path, runner: Any = _runner,
+            *, download_only: bool = False) -> Dict[str, Any]:
     platform, normalized = normalize_url(url)
     root = Path(directory).expanduser().resolve()
     if root in {Path("/"), Path.home().resolve()}:
@@ -270,7 +296,8 @@ def prepare(url: str, directory: Path, runner: Any = _runner) -> Dict[str, Any]:
         video, metadata = _download_douyin(normalized, root, runner)
     else:
         video, metadata = _download_twitter(normalized, root, runner)
-    audio = _extract_audio(video, root, runner)
+    media_info = _probe_media(video, runner)
+    audio = _extract_audio(video, root, runner) if media_info["has_audio"] and not download_only else None
     raw_id = str(metadata.get("id") or "").strip()
     if platform == "bilibili":
         match = re.search(r"BV[0-9A-Za-z]+", normalized, flags=re.IGNORECASE)
@@ -290,7 +317,8 @@ def prepare(url: str, directory: Path, runner: Any = _runner) -> Dict[str, Any]:
         "canonical_url": normalized,
         "title": str(metadata.get("title") or video.stem).strip()[:300],
         "author": str(metadata.get("uploader") or metadata.get("creator") or "").strip()[:120],
-        "video_path": str(video), "audio_path": str(audio),
+        "video_path": str(video), "audio_path": str(audio) if audio else "",
+        "media": media_info,
         "temporary_directory": str(root),
     }
 
@@ -299,9 +327,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Prepare temporary VideoChai media")
     parser.add_argument("--url", required=True)
     parser.add_argument("--directory", type=Path, required=True)
+    parser.add_argument("--download-only", action="store_true", help="skip audio extraction")
     args = parser.parse_args()
     try:
-        result = prepare(args.url, args.directory)
+        result = prepare(args.url, args.directory, download_only=args.download_only)
         print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
         return 0
     except MediaPreparationError as exc:

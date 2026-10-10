@@ -24,7 +24,6 @@ douyin_browser = load_script("douyin_browser")
 frames = load_script("extract_frames")
 media = load_script("prepare_media")
 transcription = load_script("transcribe")
-workbench = load_script("workbench_client")
 
 
 class VideoChaiTests(unittest.TestCase):
@@ -187,21 +186,54 @@ class VideoChaiTests(unittest.TestCase):
             )
             self.assertTrue(Path(result["manifest_path"]).is_file())
 
-    def test_workbench_payload_preserves_user_instruction(self):
-        result = workbench.normalize_payload({
-            "url": "https://v.douyin.com/abc123/",
-            "instruction": "只分析人物与氛围",
-        })
-        self.assertEqual(result["instruction"], "只分析人物与氛围")
+    def test_download_ready_without_transcription_or_browser(self):
+        with mock.patch.object(doctor, "_command", side_effect=lambda name: "/bin/" + name), \
+                mock.patch.object(doctor, "_module", side_effect=lambda name: name == "yt_dlp"):
+            download = doctor.diagnose("douyin", "download")
+            summary = doctor.diagnose("douyin", "summarize")
+        self.assertTrue(download["ok"])
+        self.assertEqual(download["missing"], [])
+        self.assertFalse(summary["ok"])
+        self.assertEqual(len(summary["missing"]), 1)
+        self.assertFalse(download["secrets_checked"])
 
-    def test_doctor_never_checks_secrets(self):
-        with mock.patch.object(doctor, "_workbench", return_value={
-            "ready": True, "url": doctor.DEFAULT_WORKBENCH_URL,
-        }):
-            result = doctor.diagnose()
-        self.assertTrue(result["ok"])
-        self.assertFalse(result["secrets_checked"])
-        self.assertNotIn("cookie", json.dumps(result).lower())
+    def test_doctor_checks_only_requested_platform(self):
+        with mock.patch.object(doctor, "_command", side_effect=lambda name: "/bin/" + name), \
+                mock.patch.object(doctor, "_module", return_value=False):
+            self.assertTrue(doctor.diagnose("bilibili", "download")["ok"])
+            self.assertFalse(doctor.diagnose("twitter", "download")["ok"])
+
+    def test_download_only_skips_audio_even_for_video_with_sound(self):
+        self._check_audio_preparation(has_audio=True, download_only=True, expected_audio=False)
+
+    def test_silent_video_can_be_prepared_for_visual_summary(self):
+        self._check_audio_preparation(has_audio=False, download_only=False, expected_audio=False)
+
+    def test_summary_extracts_audio_when_present(self):
+        self._check_audio_preparation(has_audio=True, download_only=False, expected_audio=True)
+
+    def _check_audio_preparation(self, *, has_audio, download_only, expected_audio):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            video = root / "sample.mp4"
+            video.write_bytes(b"video")
+            info = {"duration_seconds": 12.0, "width": 1280, "height": 720, "has_audio": has_audio}
+            with mock.patch.object(media, "_download_bilibili", return_value=(video, {})), \
+                    mock.patch.object(media, "_probe_media", return_value=info), \
+                    mock.patch.object(media, "_extract_audio", return_value=root / "audio.m4a") as extract:
+                result = media.prepare("BV1xx411c7mD", root, download_only=download_only)
+            self.assertEqual(result["media"]["has_audio"], has_audio)
+            self.assertEqual(bool(result["audio_path"]), expected_audio)
+            self.assertEqual(extract.call_count, int(expected_audio))
+
+    def test_media_probe_rejects_audio_only_and_invalid_files(self):
+        for payload in ({"streams": [{"codec_type": "audio"}]}, {}, []):
+            runner = lambda *_args, **_kwargs: types.SimpleNamespace(
+                returncode=0, stdout=json.dumps(payload), stderr="")
+            with mock.patch.object(media.shutil, "which", return_value="ffprobe"):
+                with self.assertRaises(media.MediaPreparationError) as error:
+                    media._probe_media(Path("sample.mp4"), runner)
+                self.assertEqual(error.exception.code, "INVALID_MEDIA")
 
 
 if __name__ == "__main__":
