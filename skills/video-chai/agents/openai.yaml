@@ -1,0 +1,6 @@
+interface:
+  display_name: "VideoChai｜视频拆"
+  short_description: "将公开B站、抖音或X视频拆解成飞书文档"
+  default_prompt: "Use $video-chai to 拆解这条 B站、抖音或 X 视频，并生成一篇飞书文档。"
+policy:
+  allow_implicit_invocation: true

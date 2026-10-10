@@ -37,6 +37,17 @@
 
 三个决定完成后，Skill 会自动交付 1080 × 1440 成图、逐页文案、来源说明和可直接发布的详细简介。适合希望自己担任“主编”，但不想逐步盯制作流程的用户。
 
+### video-chai｜视频拆
+
+把一条公开 B站、抖音或 X/Twitter 视频链接拆解成一篇飞书文档：
+
+- 保留用户原始要求，结合本机转录和代表性关键帧整理内容；
+- 首次使用由 Agent 检查并引导配置媒体、转录与飞书能力；
+- 支持独立运行，也可连接兼容的本地内容工作台；
+- 只处理公开可访问的视频，任务结束后清理临时媒体。
+
+使用 Agent 当前可用的分析与飞书能力，不绑定指定模型 API 服务。详见 [VideoChai 使用与部署说明](skills/video-chai/README.md)。该 Skill 使用 GPL-3.0-only 许可。
+
 ## 用 Codex 安装
 
 在 Codex 中发送：
@@ -51,7 +62,11 @@
 
 > 使用 `$skill-installer` 安装 https://github.com/ecoder-4002/codex-skills/tree/main/skills/ai-broll-fuke
 
-安装完成后，该 Skill 会在下一轮对话中可用。
+安装 VideoChai：
+
+> 使用 `$skill-installer` 安装 https://github.com/ecoder-4002/codex-skills/tree/main/skills/video-chai
+
+安装完成后，该 Skill 会在下一轮对话中可用。VideoChai 首次处理视频时会运行 doctor 检查所需依赖；安装 Skill 本身不会自动创建飞书文档。
 
 也可以手动运行 Codex 自带的安装脚本：
 
@@ -61,7 +76,7 @@ python3 "${CODEX_HOME:-$HOME/.codex}/skills/.system/skill-installer/scripts/inst
   --path skills/hot-news-carousel
 ```
 
-将最后一行改为 `--path skills/hot-news-carousel-cocreate` 或 `--path skills/ai-broll-fuke` 即可安装对应 Skill。
+将最后一行改为 `--path skills/hot-news-carousel-cocreate`、`--path skills/ai-broll-fuke` 或 `--path skills/video-chai` 即可安装对应 Skill。
 
 ## ai-broll-fuke 依赖说明
 
@@ -84,6 +99,7 @@ Skill 本身只包含 Markdown/YAML 指令与参考资料，不包含 npm 包，
 - “先完成搜索、事实账本、母稿和分页结构，暂时不出图。”
 - “用共创版做一期这个新闻，先让我选叙事、标题和视觉，再自动出完整图。”
 - “用 `$ai-broll-fuke` 复刻这段参考动效，先给我静态母版和分层预览，素材确认后再进入 Remotion。”
+- “用 `$video-chai` 拆一下这个视频，只提炼方法，并生成飞书文档：<公开视频链接>”
 
 ## 可选署名配置
 
@@ -115,14 +131,26 @@ codex-skills/
 │   │   ├── agents/openai.yaml
 │   │   ├── references/
 │   │   └── scripts/
-│   └── hot-news-carousel-cocreate/
+│   ├── hot-news-carousel-cocreate/
+│   │   ├── SKILL.md
+│   │   ├── agents/openai.yaml
+│   │   ├── references/
+│   │   └── scripts/
+│   └── video-chai/
 │       ├── SKILL.md
+│       ├── README.md
+│       ├── LICENSE
+│       ├── THIRD_PARTY_NOTICES.md
 │       ├── agents/openai.yaml
 │       ├── references/
-│       └── scripts/
+│       ├── scripts/
+│       ├── tests/
+│       └── assets/
 └── examples/
 ```
 
 ## License
 
-[MIT](LICENSE)
+仓库根目录及其他未另行声明的内容使用 [MIT](LICENSE)。
+
+`skills/video-chai/` 使用 [GPL-3.0-only](skills/video-chai/LICENSE)，其外部依赖说明见 [THIRD_PARTY_NOTICES.md](skills/video-chai/THIRD_PARTY_NOTICES.md)。
